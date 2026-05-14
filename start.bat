@@ -22,12 +22,14 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: ---- Fetch Camoufox browser binary only if not already installed ----
+:: ---- Fetch Camoufox browser binary only on first run ----
 echo [*] Checking Camoufox browser binary...
-python -c "from camoufox.pkgman import get_path; get_path()" 2>nul
-if %errorlevel% neq 0 (
+if exist .camoufox_installed (
+    echo [*] Camoufox already installed - skipping fetch.
+) else (
     echo [*] Downloading Camoufox Firefox binary...
     python -m camoufox fetch
+    echo installed > .camoufox_installed
 )
 
 :: ---- Ensure required input files exist ----

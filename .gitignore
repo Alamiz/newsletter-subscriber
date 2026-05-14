@@ -10,3 +10,4 @@ __pycache__/
 
 # Camoufox browser binary cache
 .camoufox/
+.camoufox_installed
