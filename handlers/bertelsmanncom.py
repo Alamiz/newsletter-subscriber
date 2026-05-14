@@ -31,6 +31,9 @@ _SEL_P2_EMAIL   = 'input[name="email"]'
 _SEL_P2_SUBMIT  = 'button[type="submit"]'
 _SEL_P2_SUCCESS = 'div.mce_text'
 
+_SEL_COOKIE_DIALOG = "div#CybotCookiebotDialog"
+_SEL_COOKIE_ACCEPT = "button#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"
+
 _CAPTCHA_SELECTORS = [
     "iframe[src*='recaptcha']",
     "iframe[src*='hcaptcha']",
@@ -50,6 +53,7 @@ async def run(page, email: str, logger) -> None:
     await post_load_pause(page)
 
     await _check_captcha(page, logger)
+    await _accept_cookies(page, logger)
 
     # ------------------------------------------------------------------ #
     # 2. Fill FIRST email input
@@ -144,6 +148,18 @@ async def run(page, email: str, logger) -> None:
     logger.screenshot(ss_path, "success")
 
     await page2.close()
+
+
+async def _accept_cookies(page, logger) -> None:
+    try:
+        await page.wait_for_selector(_SEL_COOKIE_DIALOG, timeout=5_000)
+        logger.step("cookie_dialog_found", _SEL_COOKIE_DIALOG)
+        await page.click(_SEL_COOKIE_ACCEPT)
+        logger.click(_SEL_COOKIE_ACCEPT, "accept all cookies")
+        await page.wait_for_selector(_SEL_COOKIE_DIALOG, state="hidden", timeout=5_000)
+        logger.debug("cookie dialog dismissed")
+    except Exception:
+        logger.debug("no cookie dialog detected — continuing")
 
 
 async def _check_captcha(page, logger) -> None:
