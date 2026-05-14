@@ -3,14 +3,14 @@ setlocal enabledelayedexpansion
 
 echo.
 echo ============================================================
-echo   Newsletter Automation Tool — Startup
+echo   Newsletter Automation Tool - Startup
 echo ============================================================
 echo.
 
 :: ---- Git pull ----
 git pull 2>nul
 if %errorlevel% neq 0 (
-    echo [WARN] git pull failed or not a git repo — continuing
+    echo [WARN] git pull failed or not a git repo - continuing
 )
 
 :: ---- Install / update Python dependencies ----
