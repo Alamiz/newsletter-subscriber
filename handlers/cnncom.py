@@ -25,6 +25,7 @@ _SEL_EMAIL     = "input#newsletter-subscribe-email-input"
 _SEL_PASSWORD  = "div.formfield-text__input-wrapper > input#reg-password-input"
 _SEL_SUBMIT    = 'button[data-uri^="cms.cnn.com"][type="submit"]'
 _SEL_SUCCESS   = 'button[data-zjs-user-status="logged_in"]'
+_SEL_COOKIE_ACCEPT = "div#onetrust-button-group > button#onetrust-accept-btn-handler"
 
 _CAPTCHA_SELECTORS = [
     "iframe[src*='recaptcha']",
@@ -61,6 +62,7 @@ async def run(page, email: str, logger) -> None:
     await post_load_pause(page)
 
     await _check_captcha(page, logger)
+    await _accept_cookies(page, logger)
 
     # ------------------------------------------------------------------ #
     # 2. Randomly select 5 newsletter cards
@@ -152,6 +154,18 @@ async def run(page, email: str, logger) -> None:
     logger.wait(_SEL_SUCCESS, 20_000)
     await page.wait_for_selector(_SEL_SUCCESS, timeout=20_000)
     logger.success("logged_in button found")
+
+
+async def _accept_cookies(page, logger) -> None:
+    try:
+        await page.wait_for_selector(_SEL_COOKIE_ACCEPT, timeout=5_000)
+        logger.step("cookie_dialog_found", _SEL_COOKIE_ACCEPT)
+        await page.click(_SEL_COOKIE_ACCEPT)
+        logger.click(_SEL_COOKIE_ACCEPT, "accept all cookies")
+        await page.wait_for_selector(_SEL_COOKIE_ACCEPT, state="hidden", timeout=5_000)
+        logger.debug("cookie dialog dismissed")
+    except Exception:
+        logger.debug("no cookie dialog detected — continuing")
 
 
 async def _check_captcha(page, logger) -> None:
