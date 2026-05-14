@@ -42,7 +42,7 @@ if not exist newsletters.txt (
 echo.
 echo [*] Starting subscribe.py %*
 echo.
-python subscribe.py %*
+python subscribe.py --no-headless %*
 
 echo.
 echo [*] Done. Check output/ for results.
