@@ -251,6 +251,14 @@ class Orchestrator:
 
                         elapsed = (time.perf_counter() - t0) * 1000
                         logger.timing("handler_run", elapsed)
+
+                        ss = await ScreenshotManager.capture(
+                            page, email, newsletter, "success", attempt
+                        )
+                        if ss:
+                            screenshots.append(ss)
+                            logger.screenshot(ss, "success")
+
                         logger.success()
                         final_status = Status.SUCCESS
                         last_error = None
