@@ -11,7 +11,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, List, Optional
 
-from camoufox.async_api import AsyncCamoufox
+from camoufox.pkgman import get_path as _camoufox_exe
+from playwright.async_api import async_playwright
 
 from core.browser_manager import BrowserManager
 from core.logger_system import RunLogger
@@ -126,32 +127,41 @@ class Orchestrator:
         results: List[NewsletterResult] = []
         current_proxy = task.proxy
 
-        self.status_manager.set_active(task.email, "—", "starting")
+        self.status_manager.set_active(task.email, "-", "starting")
 
-        for newsletter in task.newsletters:
-            self.status_manager.set_active(task.email, newsletter, "queued")
+        # Resolve Camoufox binary path once per email worker
+        try:
+            camoufox_exe = str(_camoufox_exe())
+        except Exception:
+            camoufox_exe = None  # falls back to system Firefox
 
-            result = await self._process_newsletter(
-                email=task.email,
-                newsletter=newsletter,
-                profile_path=task.profile_path,
-                proxy=current_proxy,
-            )
+        async with async_playwright() as pw:
+            for newsletter in task.newsletters:
+                self.status_manager.set_active(task.email, newsletter, "queued")
 
-            # Carry forward any proxy rotation that occurred during retries
-            current_proxy = result.proxy
+                result = await self._process_newsletter(
+                    pw=pw,
+                    camoufox_exe=camoufox_exe,
+                    email=task.email,
+                    newsletter=newsletter,
+                    profile_path=task.profile_path,
+                    proxy=current_proxy,
+                )
 
-            self.status_manager.record(newsletter, task.email, result.status)
-            results.append(result)
+                # Carry forward any proxy rotation that occurred during retries
+                current_proxy = result.proxy
 
-            if self.on_result:
-                try:
-                    self.on_result(result)
-                except Exception:
-                    pass
+                self.status_manager.record(newsletter, task.email, result.status)
+                results.append(result)
 
-            # Human-like pause between newsletters
-            await asyncio.sleep(random.uniform(2.0, 5.0))
+                if self.on_result:
+                    try:
+                        self.on_result(result)
+                    except Exception:
+                        pass
+
+                # Human-like pause between newsletters
+                await asyncio.sleep(random.uniform(2.0, 5.0))
 
         return results
 
@@ -161,6 +171,8 @@ class Orchestrator:
 
     async def _process_newsletter(
         self,
+        pw,
+        camoufox_exe: Optional[str],
         email: str,
         newsletter: str,
         profile_path: str,
@@ -220,13 +232,18 @@ class Orchestrator:
             proxy_config = BrowserManager.parse_proxy(current_proxy)
 
             try:
-                async with AsyncCamoufox(
+                launch_kwargs = dict(
                     headless=self.headless,
-                    humanize=True,
                     user_data_dir=profile_path,
-                    proxy=proxy_config,
-                ) as browser:
-                    page = await browser.new_page()
+                )
+                if camoufox_exe:
+                    launch_kwargs["executable_path"] = camoufox_exe
+                if proxy_config:
+                    launch_kwargs["proxy"] = proxy_config
+
+                ctx = await pw.firefox.launch_persistent_context(**launch_kwargs)
+                try:
+                    page = await ctx.new_page()
                     logger.step("browser_launched", f"attempt={attempt + 1}")
 
                     try:
@@ -237,7 +254,6 @@ class Orchestrator:
                         logger.success()
                         final_status = Status.SUCCESS
                         last_error = None
-                        break  # exit retry loop
 
                     except CaptchaDetected as exc:
                         elapsed = (time.perf_counter() - t0) * 1000
@@ -251,7 +267,6 @@ class Orchestrator:
                             logger.screenshot(ss, "captcha")
                         final_status = Status.CAPTCHA
                         last_error = str(exc)
-                        break  # CAPTCHA is never retried
 
                     except Exception as exc:
                         elapsed = (time.perf_counter() - t0) * 1000
@@ -285,6 +300,12 @@ class Orchestrator:
                             await page.close()
                         except Exception:
                             pass
+
+                finally:
+                    try:
+                        await ctx.close()
+                    except Exception:
+                        pass
 
             except Exception as outer:
                 # Browser launch failed
