@@ -1,0 +1,4 @@
+camoufox[geoip]>=0.4.0
+playwright>=1.44.0
+rich>=13.7.0
+click>=8.1.7

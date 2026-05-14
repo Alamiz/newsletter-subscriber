@@ -1,0 +1,12 @@
+# Runtime data — never commit
+profiles/
+output/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+*.log
+
+# Camoufox browser binary cache
+.camoufox/
