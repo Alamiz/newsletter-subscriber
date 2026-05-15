@@ -15,7 +15,6 @@ import random
 import secrets
 import string
 
-from core.models import CaptchaDetected
 from utils.human import delay, move_and_click, post_load_pause, type_text
 
 _URL = "https://edition.cnn.com/newsletters"
@@ -26,14 +25,6 @@ _SEL_PASSWORD  = "div.formfield-text__input-wrapper > input#reg-password-input"
 _SEL_SUBMIT    = 'button[data-uri^="cms.cnn.com"][type="submit"]'
 _SEL_SUCCESS   = 'button[data-zjs-user-status="logged_in"]'
 _SEL_COOKIE_ACCEPT = "div#onetrust-button-group > button#onetrust-accept-btn-handler"
-
-_CAPTCHA_SELECTORS = [
-    "iframe[src*='recaptcha']",
-    "iframe[src*='hcaptcha']",
-    ".g-recaptcha",
-    "#cf-challenge-running",
-    "iframe[title*='challenge']",
-]
 
 _NEWSLETTERS_TO_SELECT = 5
 
@@ -61,7 +52,6 @@ async def run(page, email: str, logger) -> None:
     await page.goto(_URL, wait_until="domcontentloaded", timeout=30_000)
     await post_load_pause(page)
 
-    await _check_captcha(page, logger)
     await _accept_cookies(page, logger)
 
     # ------------------------------------------------------------------ #
@@ -112,8 +102,6 @@ async def run(page, email: str, logger) -> None:
     await delay(0.1, 0.3)
     await submits[0].click()
     await delay(2.0, 4.0)
-
-    await _check_captcha(page, logger)
 
     # ------------------------------------------------------------------ #
     # 5. Fill password
@@ -166,16 +154,3 @@ async def _accept_cookies(page, logger) -> None:
         logger.debug("cookie dialog dismissed")
     except Exception:
         logger.debug("no cookie dialog detected — continuing")
-
-
-async def _check_captcha(page, logger) -> None:
-    for sel in _CAPTCHA_SELECTORS:
-        try:
-            el = await page.query_selector(sel)
-            if el:
-                logger.captcha(page.url)
-                raise CaptchaDetected(page.url)
-        except CaptchaDetected:
-            raise
-        except Exception:
-            pass

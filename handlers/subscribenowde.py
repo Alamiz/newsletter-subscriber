@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import random
 
-from core.models import CaptchaDetected
 from utils.human import delay, post_load_pause
 
 _URL = "https://www.subscribe-now.de/"
@@ -21,14 +20,6 @@ _SEL_IFRAME   = 'iframe[src^="https://embeds.beehiiv.com"]'
 _SEL_EMAIL    = 'input[type="email"]'
 _SEL_SUBMIT   = 'button[type="submit"]'
 _SEL_SUCCESS  = 'div#root p'
-
-_CAPTCHA_SELECTORS = [
-    "iframe[src*='recaptcha']",
-    "iframe[src*='hcaptcha']",
-    ".g-recaptcha",
-    "#cf-challenge-running",
-    "iframe[title*='challenge']",
-]
 
 
 async def run(page, email: str, logger) -> None:
@@ -39,8 +30,6 @@ async def run(page, email: str, logger) -> None:
     logger.navigate(_URL)
     await page.goto(_URL, wait_until="domcontentloaded", timeout=30_000)
     await post_load_pause(page)
-
-    await _check_captcha(page, logger)
 
     # ------------------------------------------------------------------ #
     # 2. Locate Beehiiv iframe and get a FrameLocator scoped to it
@@ -97,16 +86,3 @@ async def run(page, email: str, logger) -> None:
 
     text = await success_loc.first.inner_text()
     logger.success(f"success text: {text!r}")
-
-
-async def _check_captcha(page, logger) -> None:
-    for sel in _CAPTCHA_SELECTORS:
-        try:
-            el = await page.query_selector(sel)
-            if el:
-                logger.captcha(page.url)
-                raise CaptchaDetected(page.url)
-        except CaptchaDetected:
-            raise
-        except Exception:
-            pass

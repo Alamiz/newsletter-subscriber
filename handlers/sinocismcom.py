@@ -12,7 +12,6 @@ Flow:
 
 from __future__ import annotations
 
-from core.models import CaptchaDetected
 from utils.human import delay, post_load_pause, type_text
 
 _URL = "https://sinocism.com/"
@@ -21,14 +20,6 @@ _SEL_EMAIL  = 'input[type="email"][name="email"][placeholder="Type your email...
 _SEL_SUBMIT     = 'button[type="submit"]:has-text("Subscribe")'
 _SEL_FREE_PLAN  = 'div.box.with-button:has(div.plan-info-container.free) button[type="submit"]'
 _SEL_SUCCESS    = 'div[data-testid="subscribe-confirm-email-screen"]'
-
-_CAPTCHA_SELECTORS = [
-    "iframe[src*='recaptcha']",
-    "iframe[src*='hcaptcha']",
-    ".g-recaptcha",
-    "#cf-challenge-running",
-    "iframe[title*='challenge']",
-]
 
 
 async def run(page, email: str, logger) -> None:
@@ -39,8 +30,6 @@ async def run(page, email: str, logger) -> None:
     logger.navigate(_URL)
     await page.goto(_URL, wait_until="domcontentloaded", timeout=30_000)
     await post_load_pause(page)
-
-    await _check_captcha(page, logger)
 
     # ------------------------------------------------------------------ #
     # 2. Fill email
@@ -85,16 +74,3 @@ async def run(page, email: str, logger) -> None:
     logger.wait(_SEL_SUCCESS, 15_000)
     await page.wait_for_selector(_SEL_SUCCESS, timeout=15_000)
     logger.success("confirm-email screen detected")
-
-
-async def _check_captcha(page, logger) -> None:
-    for sel in _CAPTCHA_SELECTORS:
-        try:
-            el = await page.query_selector(sel)
-            if el:
-                logger.captcha(page.url)
-                raise CaptchaDetected(page.url)
-        except CaptchaDetected:
-            raise
-        except Exception:
-            pass

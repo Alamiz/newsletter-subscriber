@@ -17,7 +17,6 @@ import random
 from datetime import datetime
 from pathlib import Path
 
-from core.models import CaptchaDetected
 from utils.human import delay, post_load_pause
 
 _URL = "https://www.bertelsmann.com/en/media/newsletter/"
@@ -34,14 +33,6 @@ _SEL_P2_SUCCESS = 'div.mce_text'
 _SEL_COOKIE_DIALOG = "div#CybotCookiebotDialog"
 _SEL_COOKIE_ACCEPT = "button#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"
 
-_CAPTCHA_SELECTORS = [
-    "iframe[src*='recaptcha']",
-    "iframe[src*='hcaptcha']",
-    ".g-recaptcha",
-    "#cf-challenge-running",
-    "iframe[title*='challenge']",
-]
-
 
 async def run(page, email: str, logger) -> None:
     # ------------------------------------------------------------------ #
@@ -52,7 +43,6 @@ async def run(page, email: str, logger) -> None:
     await page.goto(_URL, wait_until="domcontentloaded", timeout=30_000)
     await post_load_pause(page)
 
-    await _check_captcha(page, logger)
     await _accept_cookies(page, logger)
 
     # ------------------------------------------------------------------ #
@@ -94,8 +84,6 @@ async def run(page, email: str, logger) -> None:
 
     await page2.wait_for_load_state("domcontentloaded", timeout=30_000)
     await post_load_pause(page2)
-
-    await _check_captcha(page2, logger)
 
     # ------------------------------------------------------------------ #
     # 4. Fill email on new tab
@@ -160,16 +148,3 @@ async def _accept_cookies(page, logger) -> None:
         logger.debug("cookie dialog dismissed")
     except Exception:
         logger.debug("no cookie dialog detected — continuing")
-
-
-async def _check_captcha(page, logger) -> None:
-    for sel in _CAPTCHA_SELECTORS:
-        try:
-            el = await page.query_selector(sel)
-            if el:
-                logger.captcha(page.url)
-                raise CaptchaDetected(page.url)
-        except CaptchaDetected:
-            raise
-        except Exception:
-            pass
