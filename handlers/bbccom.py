@@ -23,7 +23,7 @@ from utils.human import delay, post_load_pause, type_text
 _URL = "https://www.bbc.com/newsletters"
 
 _SEL_IFRAME    = 'iframe[src^="https://session.bbc.com"]'
-_SEL_CHECKBOX  = 'input[type="checkbox"]'
+_SEL_CHECKBOX  = 'label[class^="SwitchToggle_SwitchToggleLabel"]'
 _SEL_EMAIL     = 'input[type="text"]'
 _SEL_SUBMIT    = 'button[type="submit"]'
 _SEL_SUCCESS       = 'div[data-testid="iframe-magic-link-confirmation"]'
