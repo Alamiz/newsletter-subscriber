@@ -2,5 +2,6 @@
 #drdsgvode
 #bertelsmanncom
 #cnncom
-sinocismcom
-bbccom
+#sinocismcom
+#bbccom
+techcrunchcom
