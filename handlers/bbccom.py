@@ -26,6 +26,7 @@ _SEL_CHECKBOX  = 'label[class^="SwitchToggle_SwitchToggleLabel"]'
 _SEL_EMAIL     = 'input[type="text"]'
 _SEL_SUBMIT    = 'button[type="submit"]'
 _SEL_SUCCESS       = 'div[data-testid="iframe-magic-link-confirmation"]'
+_SEL_SUCCESS_ALT   = 'section[class*="BannerStyles_ConfirmationBanner"]'
 _SEL_COOKIE_IFRAME = 'iframe[src^="https://cdn.privacy-mgmt.com"]'
 _SEL_COOKIE_ACCEPT = "button.sp_choice_type_11"
 
@@ -110,13 +111,13 @@ async def run(page, email: str, logger) -> None:
     await delay(2.5, 5.0)
 
     # ------------------------------------------------------------------ #
-    # 6. Confirm success
+    # 6. Confirm success (either selector counts)
     # ------------------------------------------------------------------ #
-    logger.step("check_success", _SEL_SUCCESS)
-    logger.wait(_SEL_SUCCESS, 20_000)
-    success_loc = frame.locator(_SEL_SUCCESS)
-    await success_loc.wait_for(timeout=20_000)
-    logger.success("magic-link confirmation screen detected")
+    logger.step("check_success", f"{_SEL_SUCCESS} | {_SEL_SUCCESS_ALT}")
+    combined = f"{_SEL_SUCCESS}, {_SEL_SUCCESS_ALT}"
+    logger.wait(combined, 20_000)
+    await frame.locator(combined).first.wait_for(timeout=20_000)
+    logger.success("confirmation screen detected")
 
 
 async def _accept_cookies(page, logger) -> None:
