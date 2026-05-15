@@ -5,13 +5,12 @@ Flow:
 1. Navigate to homepage
 2. Fill email input
 3. Click Subscribe button
-4. Confirm submission: URL contains "/subscribe?" or a second subscribe
-   screen appears — stop there (email confirmation is handled manually)
+4. Click the free plan button
+5. Confirm: div[data-testid="subscribe-confirm-email-screen"] appears
+   (email confirmation is handled manually — stop here)
 """
 
 from __future__ import annotations
-
-import random
 
 from core.models import CaptchaDetected
 from utils.human import delay, post_load_pause, type_text
@@ -19,7 +18,9 @@ from utils.human import delay, post_load_pause, type_text
 _URL = "https://sinocism.com/"
 
 _SEL_EMAIL  = 'input[type="email"][name="email"][placeholder="Type your email..."]'
-_SEL_SUBMIT = 'button[type="submit"]:has-text("Subscribe")'
+_SEL_SUBMIT     = 'button[type="submit"]:has-text("Subscribe")'
+_SEL_FREE_PLAN  = 'div.box.with-button:has(div.plan-info-container.free) button[type="submit"]'
+_SEL_SUCCESS    = 'div[data-testid="subscribe-confirm-email-screen"]'
 
 _CAPTCHA_SELECTORS = [
     "iframe[src*='recaptcha']",
@@ -65,28 +66,25 @@ async def run(page, email: str, logger) -> None:
     await delay(2.0, 4.0)
 
     # ------------------------------------------------------------------ #
-    # 4. Confirm submission — URL redirect or second subscribe screen
+    # 4. Click free plan button
     # ------------------------------------------------------------------ #
-    logger.step("check_success")
+    logger.step("wait_free_plan_button")
+    logger.wait(_SEL_FREE_PLAN, 15_000)
+    await page.wait_for_selector(_SEL_FREE_PLAN, timeout=15_000)
 
-    try:
-        await page.wait_for_url("**/subscribe?**", timeout=12_000)
-        logger.success(f"URL redirected to subscribe page: {page.url}")
-        return
-    except Exception:
-        pass
+    logger.click(_SEL_FREE_PLAN, "free plan submit button")
+    await page.hover(_SEL_FREE_PLAN)
+    await delay(0.1, 0.3)
+    await page.click(_SEL_FREE_PLAN)
+    await delay(2.0, 4.0)
 
-    # Fallback: second subscribe input appeared on the same page
-    try:
-        await page.wait_for_selector(_SEL_EMAIL, timeout=6_000)
-        logger.success("second subscribe screen appeared")
-        return
-    except Exception:
-        pass
-
-    raise Exception(
-        f"No success indicator found after submit. Current URL: {page.url}"
-    )
+    # ------------------------------------------------------------------ #
+    # 5. Confirm email-confirm screen appeared
+    # ------------------------------------------------------------------ #
+    logger.step("check_success", _SEL_SUCCESS)
+    logger.wait(_SEL_SUCCESS, 15_000)
+    await page.wait_for_selector(_SEL_SUCCESS, timeout=15_000)
+    logger.success("confirm-email screen detected")
 
 
 async def _check_captcha(page, logger) -> None:
