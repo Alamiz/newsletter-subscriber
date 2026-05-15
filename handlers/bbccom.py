@@ -26,7 +26,9 @@ _SEL_IFRAME    = 'iframe[src^="https://session.bbc.com"]'
 _SEL_CHECKBOX  = 'input[type="checkbox"]'
 _SEL_EMAIL     = 'input[type="text"]'
 _SEL_SUBMIT    = 'button[type="submit"]'
-_SEL_SUCCESS   = 'div[data-testid="iframe-magic-link-confirmation"]'
+_SEL_SUCCESS       = 'div[data-testid="iframe-magic-link-confirmation"]'
+_SEL_COOKIE_IFRAME = 'iframe[src^="https://cdn.privacy-mgmt.com"]'
+_SEL_COOKIE_ACCEPT = "button.sp_choice_type_11"
 
 _CAPTCHA_SELECTORS = [
     "iframe[src*='recaptcha']",
@@ -49,6 +51,7 @@ async def run(page, email: str, logger) -> None:
     await post_load_pause(page)
 
     await _check_captcha(page, logger)
+    await _accept_cookies(page, logger)
 
     # ------------------------------------------------------------------ #
     # 2. Wait for BBC session iframe
@@ -124,6 +127,21 @@ async def run(page, email: str, logger) -> None:
     success_loc = frame.locator(_SEL_SUCCESS)
     await success_loc.wait_for(timeout=20_000)
     logger.success("magic-link confirmation screen detected")
+
+
+async def _accept_cookies(page, logger) -> None:
+    try:
+        await page.wait_for_selector(_SEL_COOKIE_IFRAME, timeout=5_000)
+        logger.step("cookie_dialog_found", _SEL_COOKIE_IFRAME)
+        cookie_frame = page.frame_locator(_SEL_COOKIE_IFRAME)
+        accept_btn = cookie_frame.locator(_SEL_COOKIE_ACCEPT)
+        await accept_btn.wait_for(timeout=5_000)
+        await accept_btn.click()
+        logger.click(_SEL_COOKIE_ACCEPT, "accept cookies inside privacy-mgmt iframe")
+        await page.wait_for_selector(_SEL_COOKIE_IFRAME, state="hidden", timeout=5_000)
+        logger.debug("cookie dialog dismissed")
+    except Exception:
+        logger.debug("no cookie dialog detected — continuing")
 
 
 async def _check_captcha(page, logger) -> None:
