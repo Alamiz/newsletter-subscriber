@@ -23,6 +23,8 @@ _SEL_EMAIL       = 'input[type="email"]'
 _SEL_RADIO_FIRST = "div.form-input__radio-group > label:nth-child(1)"
 _SEL_SUBMIT      = "div.form-input button[type=\"submit\"]"
 _SEL_SUCCESS     = 'div[aria-labelledby="popupMessage"]'
+_SEL_COOKIE_ROOT   = "div.fc-consent-root"
+_SEL_COOKIE_ACCEPT = "button.fc-cta-consent"
 
 
 async def run(page, email: str, logger) -> None:
@@ -33,6 +35,7 @@ async def run(page, email: str, logger) -> None:
     logger.navigate(_URL)
     await page.goto(_URL, wait_until="domcontentloaded", timeout=30_000)
     await post_load_pause(page)
+    await _accept_cookies(page, logger)
 
     # ------------------------------------------------------------------ #
     # 2. Click "Select All"
@@ -93,3 +96,15 @@ async def run(page, email: str, logger) -> None:
     logger.wait(_SEL_SUCCESS, 15_000)
     await page.wait_for_selector(_SEL_SUCCESS, timeout=15_000)
     logger.success("confirmation popup detected")
+
+
+async def _accept_cookies(page, logger) -> None:
+    try:
+        await page.wait_for_selector(_SEL_COOKIE_ROOT, timeout=5_000)
+        logger.step("cookie_dialog_found", _SEL_COOKIE_ROOT)
+        await page.click(_SEL_COOKIE_ACCEPT)
+        logger.click(_SEL_COOKIE_ACCEPT, "accept cookies")
+        await page.wait_for_selector(_SEL_COOKIE_ROOT, state="hidden", timeout=5_000)
+        logger.debug("cookie dialog dismissed")
+    except Exception:
+        logger.debug("no cookie dialog detected — continuing")
