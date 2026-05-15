@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import random
 
-from core.models import CaptchaDetected
 from utils.human import delay, post_load_pause, type_text
 
 _URL = "https://www.bbc.com/newsletters"
@@ -29,14 +28,6 @@ _SEL_SUBMIT    = 'button[type="submit"]'
 _SEL_SUCCESS       = 'div[data-testid="iframe-magic-link-confirmation"]'
 _SEL_COOKIE_IFRAME = 'iframe[src^="https://cdn.privacy-mgmt.com"]'
 _SEL_COOKIE_ACCEPT = "button.sp_choice_type_11"
-
-_CAPTCHA_SELECTORS = [
-    "iframe[src*='recaptcha']",
-    "iframe[src*='hcaptcha']",
-    ".g-recaptcha",
-    "#cf-challenge-running",
-    "iframe[title*='challenge']",
-]
 
 _NEWSLETTERS_TO_SELECT = 5
 
@@ -50,7 +41,6 @@ async def run(page, email: str, logger) -> None:
     await page.goto(_URL, wait_until="domcontentloaded", timeout=30_000)
     await post_load_pause(page)
 
-    await _check_captcha(page, logger)
     await _accept_cookies(page, logger)
 
     # ------------------------------------------------------------------ #
@@ -144,14 +134,3 @@ async def _accept_cookies(page, logger) -> None:
         logger.debug("no cookie dialog detected — continuing")
 
 
-async def _check_captcha(page, logger) -> None:
-    for sel in _CAPTCHA_SELECTORS:
-        try:
-            el = await page.query_selector(sel)
-            if el:
-                logger.captcha(page.url)
-                raise CaptchaDetected(page.url)
-        except CaptchaDetected:
-            raise
-        except Exception:
-            pass
