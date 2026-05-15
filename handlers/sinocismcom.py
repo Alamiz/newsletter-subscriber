@@ -72,10 +72,10 @@ async def run(page, email: str, logger) -> None:
     logger.wait(_SEL_FREE_PLAN, 15_000)
     await page.wait_for_selector(_SEL_FREE_PLAN, timeout=15_000)
 
-    logger.click(_SEL_FREE_PLAN, "free plan submit button")
+    logger.click(_SEL_FREE_PLAN, "free plan submit button (double-click)")
     await page.hover(_SEL_FREE_PLAN)
     await delay(0.1, 0.3)
-    await page.click(_SEL_FREE_PLAN)
+    await page.dblclick(_SEL_FREE_PLAN)
     await delay(2.0, 4.0)
 
     # ------------------------------------------------------------------ #
