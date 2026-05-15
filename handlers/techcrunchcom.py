@@ -100,7 +100,7 @@ async def run(page, email: str, logger) -> None:
 
 async def _accept_cookies(page, logger) -> None:
     try:
-        await page.wait_for_selector(_SEL_COOKIE_ROOT, timeout=5_000)
+        await page.wait_for_selector(_SEL_COOKIE_ROOT, timeout=15_000)
         logger.step("cookie_dialog_found", _SEL_COOKIE_ROOT)
         await page.click(_SEL_COOKIE_ACCEPT)
         logger.click(_SEL_COOKIE_ACCEPT, "accept cookies")
