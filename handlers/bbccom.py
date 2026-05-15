@@ -64,11 +64,11 @@ async def run(page, email: str, logger) -> None:
     frame = page.frame_locator(_SEL_IFRAME)
 
     # ------------------------------------------------------------------ #
-    # 3. Randomly check 5 newsletter checkboxes
+    # 3. Randomly check 5 newsletter checkboxes (main page, not in iframe)
     # ------------------------------------------------------------------ #
     logger.step("wait_checkboxes")
     logger.wait(_SEL_CHECKBOX, 15_000)
-    checkbox_loc = frame.locator(_SEL_CHECKBOX)
+    checkbox_loc = page.locator(_SEL_CHECKBOX)
     await checkbox_loc.first.wait_for(timeout=15_000)
 
     all_checkboxes = await checkbox_loc.all()
